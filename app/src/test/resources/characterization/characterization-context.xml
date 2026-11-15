@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Loaded AFTER the production contexts (same list as web.xml). It changes only what a test must not do
+  for real: write to /tmp, or swallow JMS messages that we want to observe. Everything else is the
+  production wiring: XML config, Hibernate mappings, transactions, embedded ActiveMQ, RMI, CXF.
+-->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd">
+
+  <!-- Keep the upload-directory scanner away from the real /tmp -->
+  <bean class="org.springframework.beans.factory.config.PropertyOverrideConfigurer">
+    <property name="properties">
+      <value>
+        uploadDirectoryScanner.uploadDirectory=target/characterization/upload
+        uploadDirectoryScanner.parseFailureDirectory=target/characterization/failed
+      </value>
+    </property>
+  </bean>
+
+  <!-- Same bean id as production: replaces the logging consumer on the misdirected/delivered/rejected queues -->
+  <bean id="simpleLoggingConsumer" class="se.citerus.dddsample.characterization.RecordingJmsConsumer"/>
+</beans>

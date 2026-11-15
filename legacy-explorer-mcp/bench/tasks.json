@@ -1,0 +1,215 @@
+{
+  "suffix": "Do not modify any files. End your reply with the JSON answer in a ```json code block.",
+  "tasks": [
+    {
+      "id": "entry-points-reaching-cargo-repository",
+      "why": "Multi-hop XML wiring across 3 application contexts plus an RMI link; the hardest question for text search.",
+      "prompt": "Find every entry point from which the Spring bean implementing CargoRepository can be reached by following Spring bean references only (property and constructor references, including RMI proxies that call a service exported by this application), but NOT by following JMS messages that a bean sends. An entry point is one of: a JMS queue that a listener consumes, a web URL path handled by a controller, an RMI service name exported by the application, or a SOAP endpoint address. Answer as {\"entry_points\": [\"<queue name, URL path, RMI service name or SOAP address>\", ...]}.",
+      "checks": [
+        {
+          "key": "entry_points",
+          "type": "set",
+          "expected": [
+            {
+              "name": "RMI BookingService",
+              "pattern": "(?<![A-Za-z])BookingService(?![A-Za-z])"
+            },
+            {
+              "name": "JMS CargoHandledQueue",
+              "pattern": "(?i)CargoHandledQueue"
+            },
+            {
+              "name": "JMS HandlingEventRegistrationAttemptQueue",
+              "pattern": "(?i)HandlingEventRegistrationAttemptQueue"
+            },
+            {
+              "name": "URL /public/track",
+              "pattern": "(?i)/public/track(?![a-z])"
+            },
+            {
+              "name": "URL /admin/*",
+              "pattern": "(?i)/admin(?![a-z])"
+            }
+          ]
+        }
+      ],
+      "reference_answer": {
+        "entry_points": [
+          "BookingService",
+          "CargoHandledQueue",
+          "HandlingEventRegistrationAttemptQueue",
+          "/public/track",
+          "/admin/*"
+        ]
+      },
+      "wrong_answer": {
+        "entry_points": [
+          "CargoHandledQueue",
+          "/public/track",
+          "/ws/RegisterEvent"
+        ]
+      }
+    },
+    {
+      "id": "soap-report-to-queue",
+      "why": "Java (service -> ApplicationEvents interface -> JMS implementation) plus XML (property ref -> queue bean -> physical name -> listener).",
+      "prompt": "When a handling report is submitted to the SOAP web service, the application publishes a JMS message. Which JMS queue (its physical queue name) does that message go to, and what is the Spring bean id of the listener that consumes that queue? Answer as {\"queue\": \"...\", \"consumer_bean\": \"...\"}.",
+      "checks": [
+        {
+          "key": "queue",
+          "type": "match",
+          "pattern": "^HandlingEventRegistrationAttemptQueue$"
+        },
+        {
+          "key": "consumer_bean",
+          "type": "match",
+          "pattern": "^handlingEventRegistrationAttemptConsumer$"
+        }
+      ],
+      "reference_answer": {
+        "queue": "HandlingEventRegistrationAttemptQueue",
+        "consumer_bean": "handlingEventRegistrationAttemptConsumer"
+      },
+      "wrong_answer": {
+        "queue": "CargoHandledQueue",
+        "consumer_bean": "cargoHandledConsumer"
+      }
+    },
+    {
+      "id": "admin-ui-path-to-repository",
+      "why": "The admin web app has its own context and reaches the main app only through an RMI proxy matched by service name.",
+      "prompt": "The admin web UI is served under /admin/*. Trace how a request there reaches the CargoRepository bean. Give the remoting mechanism used between the admin web application and the main application, and the ordered chain of Spring bean ids from the admin controller's dependency to the CargoRepository bean. Answer as {\"mechanism\": \"...\", \"bean_chain\": [\"...\", ...]}.",
+      "checks": [
+        {
+          "key": "mechanism",
+          "type": "match",
+          "pattern": "(?i)\\bRMI\\b"
+        },
+        {
+          "key": "bean_chain",
+          "type": "ordered",
+          "expected": [
+            "remoteBookingService",
+            "bookingServiceFacade",
+            "bookingServiceFacadeTarget",
+            "cargoRepository"
+          ]
+        }
+      ],
+      "reference_answer": {
+        "mechanism": "RMI",
+        "bean_chain": [
+          "remoteBookingService",
+          "bookingServiceFacade",
+          "bookingServiceFacadeTarget",
+          "cargoRepository"
+        ]
+      },
+      "wrong_answer": {
+        "mechanism": "HTTP",
+        "bean_chain": [
+          "bookingService",
+          "cargoRepository"
+        ]
+      }
+    },
+    {
+      "id": "callers-of-cargo-repository-find",
+      "why": "Calls go through the CargoRepository interface; a search for the implementation class finds none of them.",
+      "prompt": "Which classes in src/main/java call the find(...) method of a CargoRepository (through any variable or field whose type is CargoRepository or one of its implementations)? Do not count the repository implementations themselves, and do not count calls to other methods such as findAll. Answer as {\"classes\": [\"SimpleClassName\", ...]}.",
+      "checks": [
+        {
+          "key": "classes",
+          "type": "set",
+          "expected": [
+            {
+              "name": "BookingServiceImpl",
+              "pattern": "(^|[.\\s/])BookingServiceImpl(\\.java)?$"
+            },
+            {
+              "name": "CargoInspectionServiceImpl",
+              "pattern": "(^|[.\\s/])CargoInspectionServiceImpl(\\.java)?$"
+            },
+            {
+              "name": "HandlingEventFactory",
+              "pattern": "(^|[.\\s/])HandlingEventFactory(\\.java)?$"
+            },
+            {
+              "name": "BookingServiceFacadeImpl",
+              "pattern": "(^|[.\\s/])BookingServiceFacadeImpl(\\.java)?$"
+            },
+            {
+              "name": "CargoTrackingController",
+              "pattern": "(^|[.\\s/])CargoTrackingController(\\.java)?$"
+            }
+          ]
+        }
+      ],
+      "reference_answer": {
+        "classes": [
+          "BookingServiceImpl",
+          "CargoInspectionServiceImpl",
+          "HandlingEventFactory",
+          "BookingServiceFacadeImpl",
+          "CargoTrackingController"
+        ]
+      },
+      "wrong_answer": {
+        "classes": [
+          "BookingServiceImpl",
+          "CargoInspectionServiceImpl",
+          "HandlingEventFactory",
+          "BookingServiceFacadeImpl"
+        ]
+      }
+    },
+    {
+      "id": "tests-referencing-handling-event-factory",
+      "why": "A simple impact question that text search also handles; a control task.",
+      "prompt": "Which test classes under src/test/java reference the class HandlingEventFactory directly in their code (imports, fields, variables, constructor calls)? Answer as {\"test_classes\": [\"SimpleClassName\", ...]}.",
+      "checks": [
+        {
+          "key": "test_classes",
+          "type": "set",
+          "expected": [
+            {
+              "name": "AbstractRepositoryTest",
+              "pattern": "(^|[.\\s/])AbstractRepositoryTest(\\.java)?$"
+            },
+            {
+              "name": "CargoLifecycleScenarioTest",
+              "pattern": "(^|[.\\s/])CargoLifecycleScenarioTest(\\.java)?$"
+            },
+            {
+              "name": "HandlingEventFactoryTest",
+              "pattern": "(^|[.\\s/])HandlingEventFactoryTest(\\.java)?$"
+            },
+            {
+              "name": "HandlingEventServiceTest",
+              "pattern": "(^|[.\\s/])HandlingEventServiceTest(\\.java)?$"
+            },
+            {
+              "name": "LegacyLifecycleCharacterizationTest",
+              "pattern": "(^|[.\\s/])LegacyLifecycleCharacterizationTest(\\.java)?$"
+            }
+          ]
+        }
+      ],
+      "reference_answer": {
+        "test_classes": [
+          "AbstractRepositoryTest",
+          "CargoLifecycleScenarioTest",
+          "HandlingEventFactoryTest",
+          "HandlingEventServiceTest",
+          "LegacyLifecycleCharacterizationTest"
+        ]
+      },
+      "wrong_answer": {
+        "test_classes": [
+          "HandlingEventFactoryTest",
+          "HandlingEventServiceTest"
+        ]
+      }
+    }
+  ]
+}

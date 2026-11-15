@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "legacy-explorer": {
+      "command": "java",
+      "args": [
+        "-jar", "legacy-explorer-mcp/build/libs/legacy-explorer-mcp-all.jar",
+        "app",
+        "legacy-explorer-mcp/build/audit.jsonl"
+      ]
+    }
+  }
+}

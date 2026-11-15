@@ -1,0 +1,303 @@
+# Legacy behaviour snapshot (time zone UTC, locale en_US, JDK 8 locale data)
+KNOWN BUG (recorded as-is): the tracking page formats times with 'hh', a 12-hour clock without AM/PM,
+so midnight shows as 12:00 and 14:30 as 02:30. Fixing it must be a deliberate, approved change.
+
+## Shipping locations offered by the booking facade
+JNTKO  Tokyo
+NLRTM  Rotterdam
+USDAL  Dallas
+SEGOT  Göteborg
+CNHGH  Hangzhou
+CNHKG  Hongkong
+DEHAM  Hamburg
+SESTO  Stockholm
+USNYC  New York
+FIHEL  Helsinki
+USCHI  Chicago
+CNSHA  Shanghai
+AUMEL  Melbourne
+
+## Sample cargos loaded at startup
+[routing] ABC123: CNHKG -> FIHEL, deadline 2009-03-15 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 00:00, unload 2009-03-05 00:00
+  leg 0200T USNYC -> USDAL, load 2009-03-06 00:00, unload 2009-03-08 00:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 00:00, unload 2009-03-12 00:00
+[routing] JKL567: CNHGH -> SESTO, deadline 2009-03-18 00:00, routed=true, misrouted=false
+  leg 0100S CNHGH -> USNYC, load 2009-03-03 00:00, unload 2009-03-05 00:00
+  leg 0200T USNYC -> USDAL, load 2009-03-06 00:00, unload 2009-03-08 00:00
+  leg 0300A USDAL -> SESTO, load 2009-03-09 00:00, unload 2009-03-11 00:00
+[tracking page ABC123] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port New York
+  Hongkong -> Helsinki, eta 2009-03-12 12:00, misdirected=false
+  next expected: Next expected activity is to load cargo onto voyage 0200T in New York
+  event: 2009-03-01 12:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 12:00 AM.
+  event: 2009-03-02 12:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 12:00 AM.
+  event: 2009-03-05 12:00 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 12:00 AM.
+[tracking page JKL567] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Onboard voyage 0100S
+  Hangzhou -> Stockholm, eta ?, misdirected=true
+  next expected: 
+  event: 2009-03-01 12:00 | RECEIVE | Hangzhou | voyage  | expected=true | Received in Hangzhou, at 3/1/09 12:00 AM.
+  event: 2009-03-03 12:00 | LOAD | Hangzhou | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hangzhou, at 3/3/09 12:00 AM.
+  event: 2009-03-05 12:00 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 12:00 AM.
+  event: 2009-03-06 12:00 | LOAD | New York | voyage 0100S | expected=false | Loaded onto voyage 0100S in New York, at 3/6/09 12:00 AM.
+
+## Book a new cargo: Hongkong -> Helsinki, arrival deadline 2009-04-01
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=false, misrouted=false
+[delivery] transport=NOT_RECEIVED, routing=NOT_ROUTED, lastKnownLocation=XXXXX, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=null, next=none
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Not received
+  Hongkong -> Helsinki, eta ?, misdirected=false
+  next expected: 
+
+## Route candidates for a 2009 deadline
+NOTE: the routing service generates candidates starting from TODAY's date, so with a deadline in
+the past every candidate misses it and is filtered out. Time-dependent behaviour, recorded as-is.
+attempt 1: 0 candidates
+attempt 2: 0 candidates
+attempt 3: 0 candidates
+
+## Assign route 0100S CNHKG-USNYC, 0200T USNYC-USDAL, 0300A USDAL-FIHEL
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=NOT_RECEIVED, routing=ROUTED, lastKnownLocation=XXXXX, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=2009-03-12 11:00, next=RECEIVE at CNHKG
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Not received
+  Hongkong -> Helsinki, eta 2009-03-12 11:00, misdirected=false
+  next expected: Next expected activity is to receive cargo in Hongkong
+
+## SOAP handling report: RECEIVE at CNHKG, completed 2009-03-01T08:00:00Z
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=IN_PORT, routing=ROUTED, lastKnownLocation=CNHKG, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=2009-03-12 11:00, next=LOAD at CNHKG voyage 0100S
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port Hongkong
+  Hongkong -> Helsinki, eta 2009-03-12 11:00, misdirected=false
+  next expected: Next expected activity is to load cargo onto voyage 0100S in Hongkong
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+
+## SOAP handling report: LOAD at CNHKG voyage 0100S, completed 2009-03-02T09:00:00Z
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=ONBOARD_CARRIER, routing=ROUTED, lastKnownLocation=CNHKG, currentVoyage=0100S, misdirected=false, unloadedAtDestination=false, eta=2009-03-12 11:00, next=UNLOAD at USNYC voyage 0100S
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Onboard voyage 0100S
+  Hongkong -> Helsinki, eta 2009-03-12 11:00, misdirected=false
+  next expected: Next expected activity is to unload cargo off of 0100S in New York
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+
+## SOAP handling report: UNLOAD at USNYC voyage 0100S, completed 2009-03-05T14:30:00Z
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=IN_PORT, routing=ROUTED, lastKnownLocation=USNYC, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=2009-03-12 11:00, next=LOAD at USNYC voyage 0200T
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port New York
+  Hongkong -> Helsinki, eta 2009-03-12 11:00, misdirected=false
+  next expected: Next expected activity is to load cargo onto voyage 0200T in New York
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+
+## SOAP handling report: LOAD at USNYC voyage 0200T, completed 2009-03-06T10:00:00Z
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=ONBOARD_CARRIER, routing=ROUTED, lastKnownLocation=USNYC, currentVoyage=0200T, misdirected=false, unloadedAtDestination=false, eta=2009-03-12 11:00, next=UNLOAD at USDAL voyage 0200T
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Onboard voyage 0200T
+  Hongkong -> Helsinki, eta 2009-03-12 11:00, misdirected=false
+  next expected: Next expected activity is to unload cargo off of 0200T in Dallas
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+  event: 2009-03-06 10:00 | LOAD | New York | voyage 0200T | expected=true | Loaded onto voyage 0200T in New York, at 3/6/09 10:00 AM.
+
+## SOAP handling report: UNLOAD at USDAL voyage 0200T, completed 2009-03-08T16:00:00Z
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=IN_PORT, routing=ROUTED, lastKnownLocation=USDAL, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=2009-03-12 11:00, next=LOAD at USDAL voyage 0300A
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port Dallas
+  Hongkong -> Helsinki, eta 2009-03-12 11:00, misdirected=false
+  next expected: Next expected activity is to load cargo onto voyage 0300A in Dallas
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+  event: 2009-03-06 10:00 | LOAD | New York | voyage 0200T | expected=true | Loaded onto voyage 0200T in New York, at 3/6/09 10:00 AM.
+  event: 2009-03-08 04:00 | UNLOAD | Dallas | voyage 0200T | expected=true | Unloaded off voyage 0200T in Dallas, at 3/8/09 4:00 PM.
+
+## SOAP handling report: LOAD at USDAL voyage 0300A, completed 2009-03-09T07:00:00Z
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=ONBOARD_CARRIER, routing=ROUTED, lastKnownLocation=USDAL, currentVoyage=0300A, misdirected=false, unloadedAtDestination=false, eta=2009-03-12 11:00, next=UNLOAD at FIHEL voyage 0300A
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Onboard voyage 0300A
+  Hongkong -> Helsinki, eta 2009-03-12 11:00, misdirected=false
+  next expected: Next expected activity is to unload cargo off of 0300A in Helsinki
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+  event: 2009-03-06 10:00 | LOAD | New York | voyage 0200T | expected=true | Loaded onto voyage 0200T in New York, at 3/6/09 10:00 AM.
+  event: 2009-03-08 04:00 | UNLOAD | Dallas | voyage 0200T | expected=true | Unloaded off voyage 0200T in Dallas, at 3/8/09 4:00 PM.
+  event: 2009-03-09 07:00 | LOAD | Dallas | voyage 0300A | expected=true | Loaded onto voyage 0300A in Dallas, at 3/9/09 7:00 AM.
+
+## NOTE: next event unloads in Stockholm, which is not on the itinerary (expect misdirected)
+
+## SOAP handling report: UNLOAD at SESTO voyage 0300A, completed 2009-03-11T13:15:00Z
+[routing] <CARGO-A>: CNHKG -> FIHEL, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=IN_PORT, routing=ROUTED, lastKnownLocation=SESTO, currentVoyage=, misdirected=true, unloadedAtDestination=false, eta=null, next=none
+[jms] MisdirectedCargoQueue: <CARGO-A>
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port Stockholm
+  Hongkong -> Helsinki, eta ?, misdirected=true
+  next expected: 
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+  event: 2009-03-06 10:00 | LOAD | New York | voyage 0200T | expected=true | Loaded onto voyage 0200T in New York, at 3/6/09 10:00 AM.
+  event: 2009-03-08 04:00 | UNLOAD | Dallas | voyage 0200T | expected=true | Unloaded off voyage 0200T in Dallas, at 3/8/09 4:00 PM.
+  event: 2009-03-09 07:00 | LOAD | Dallas | voyage 0300A | expected=true | Loaded onto voyage 0300A in Dallas, at 3/9/09 7:00 AM.
+  event: 2009-03-11 01:15 | UNLOAD | Stockholm | voyage 0300A | expected=false | Unloaded off voyage 0300A in Stockholm, at 3/11/09 1:15 PM.
+
+## SOAP report for an unknown voyage passes validation but cannot be registered
+handling events stored: 7
+NOTE: the failure is only logged. RejectedRegistrationAttemptsQueue is wired but nothing ever sends to it.
+
+## Change destination to Stockholm (expect misrouted)
+[routing] <CARGO-A>: CNHKG -> SESTO, deadline 2009-04-01 00:00, routed=true, misrouted=true
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> FIHEL, load 2009-03-09 07:00, unload 2009-03-12 11:00
+[delivery] transport=IN_PORT, routing=MISROUTED, lastKnownLocation=SESTO, currentVoyage=, misdirected=true, unloadedAtDestination=true, eta=null, next=none
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port Stockholm
+  Hongkong -> Stockholm, eta ?, misdirected=true
+  next expected: 
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+  event: 2009-03-06 10:00 | LOAD | New York | voyage 0200T | expected=true | Loaded onto voyage 0200T in New York, at 3/6/09 10:00 AM.
+  event: 2009-03-08 04:00 | UNLOAD | Dallas | voyage 0200T | expected=true | Unloaded off voyage 0200T in Dallas, at 3/8/09 4:00 PM.
+  event: 2009-03-09 07:00 | LOAD | Dallas | voyage 0300A | expected=true | Loaded onto voyage 0300A in Dallas, at 3/9/09 7:00 AM.
+  event: 2009-03-11 01:15 | UNLOAD | Stockholm | voyage 0300A | expected=false | Unloaded off voyage 0300A in Stockholm, at 3/11/09 1:15 PM.
+
+## Assign new route ending in Stockholm
+[routing] <CARGO-A>: CNHKG -> SESTO, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> SESTO, load 2009-03-09 07:00, unload 2009-03-11 13:15
+[delivery] transport=IN_PORT, routing=ROUTED, lastKnownLocation=SESTO, currentVoyage=, misdirected=false, unloadedAtDestination=true, eta=2009-03-11 13:15, next=CLAIM at SESTO
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port Stockholm
+  Hongkong -> Stockholm, eta 2009-03-11 01:15, misdirected=false
+  next expected: Next expected activity is to claim cargo in Stockholm
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+  event: 2009-03-06 10:00 | LOAD | New York | voyage 0200T | expected=true | Loaded onto voyage 0200T in New York, at 3/6/09 10:00 AM.
+  event: 2009-03-08 04:00 | UNLOAD | Dallas | voyage 0200T | expected=true | Unloaded off voyage 0200T in Dallas, at 3/8/09 4:00 PM.
+  event: 2009-03-09 07:00 | LOAD | Dallas | voyage 0300A | expected=true | Loaded onto voyage 0300A in Dallas, at 3/9/09 7:00 AM.
+  event: 2009-03-11 01:15 | UNLOAD | Stockholm | voyage 0300A | expected=true | Unloaded off voyage 0300A in Stockholm, at 3/11/09 1:15 PM.
+
+## SOAP handling report: CLAIM at SESTO, completed 2009-03-12T09:00:00Z
+[routing] <CARGO-A>: CNHKG -> SESTO, deadline 2009-04-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+  leg 0200T USNYC -> USDAL, load 2009-03-06 10:00, unload 2009-03-08 16:00
+  leg 0300A USDAL -> SESTO, load 2009-03-09 07:00, unload 2009-03-11 13:15
+[delivery] transport=CLAIMED, routing=ROUTED, lastKnownLocation=SESTO, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=2009-03-11 13:15, next=none
+[tracking page <CARGO-A>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Claimed
+  Hongkong -> Stockholm, eta 2009-03-11 01:15, misdirected=false
+  next expected: 
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+  event: 2009-03-06 10:00 | LOAD | New York | voyage 0200T | expected=true | Loaded onto voyage 0200T in New York, at 3/6/09 10:00 AM.
+  event: 2009-03-08 04:00 | UNLOAD | Dallas | voyage 0200T | expected=true | Unloaded off voyage 0200T in Dallas, at 3/8/09 4:00 PM.
+  event: 2009-03-09 07:00 | LOAD | Dallas | voyage 0300A | expected=true | Loaded onto voyage 0300A in Dallas, at 3/9/09 7:00 AM.
+  event: 2009-03-11 01:15 | UNLOAD | Stockholm | voyage 0300A | expected=true | Unloaded off voyage 0300A in Stockholm, at 3/11/09 1:15 PM.
+  event: 2009-03-12 09:00 | CLAIM | Stockholm | voyage  | expected=true | Claimed in Stockholm, at 3/12/09 9:00 AM.
+NOTE: no DeliveredCargoQueue message was ever sent for this cargo: it was unloaded in Stockholm
+before Stockholm became its destination, and 'delivered' is only signalled on unload.
+
+## Second cargo, happy path: Hongkong -> New York, deadline 2100-01-01
+[routing] <CARGO-B>: CNHKG -> USNYC, deadline 2100-01-01 00:00, routed=false, misrouted=false
+[delivery] transport=NOT_RECEIVED, routing=NOT_ROUTED, lastKnownLocation=XXXXX, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=null, next=none
+[tracking page <CARGO-B>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Not received
+  Hongkong -> New York, eta ?, misdirected=false
+  next expected: 
+
+## Route candidates for a far-future deadline (random by design: only the contract is recorded)
+attempt 1: 3-5 candidates, all connected origin->destination with increasing times
+attempt 2: 3-5 candidates, all connected origin->destination with increasing times
+attempt 3: 3-5 candidates, all connected origin->destination with increasing times
+attempt 4: 3-5 candidates, all connected origin->destination with increasing times
+attempt 5: 3-5 candidates, all connected origin->destination with increasing times
+
+## Assign route 0100S CNHKG-USNYC
+[routing] <CARGO-B>: CNHKG -> USNYC, deadline 2100-01-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+[delivery] transport=NOT_RECEIVED, routing=ROUTED, lastKnownLocation=XXXXX, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=2009-03-05 14:30, next=RECEIVE at CNHKG
+[tracking page <CARGO-B>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Not received
+  Hongkong -> New York, eta 2009-03-05 02:30, misdirected=false
+  next expected: Next expected activity is to receive cargo in Hongkong
+
+## SOAP handling report: RECEIVE at CNHKG, completed 2009-03-01T08:00:00Z
+[routing] <CARGO-B>: CNHKG -> USNYC, deadline 2100-01-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+[delivery] transport=IN_PORT, routing=ROUTED, lastKnownLocation=CNHKG, currentVoyage=, misdirected=false, unloadedAtDestination=false, eta=2009-03-05 14:30, next=LOAD at CNHKG voyage 0100S
+[tracking page <CARGO-B>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port Hongkong
+  Hongkong -> New York, eta 2009-03-05 02:30, misdirected=false
+  next expected: Next expected activity is to load cargo onto voyage 0100S in Hongkong
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+
+## SOAP handling report: LOAD at CNHKG voyage 0100S, completed 2009-03-02T09:00:00Z
+[routing] <CARGO-B>: CNHKG -> USNYC, deadline 2100-01-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+[delivery] transport=ONBOARD_CARRIER, routing=ROUTED, lastKnownLocation=CNHKG, currentVoyage=0100S, misdirected=false, unloadedAtDestination=false, eta=2009-03-05 14:30, next=UNLOAD at USNYC voyage 0100S
+[tracking page <CARGO-B>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: Onboard voyage 0100S
+  Hongkong -> New York, eta 2009-03-05 02:30, misdirected=false
+  next expected: Next expected activity is to unload cargo off of 0100S in New York
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+
+## SOAP handling report: UNLOAD at USNYC voyage 0100S, completed 2009-03-05T14:30:00Z
+[routing] <CARGO-B>: CNHKG -> USNYC, deadline 2100-01-01 00:00, routed=true, misrouted=false
+  leg 0100S CNHKG -> USNYC, load 2009-03-02 09:00, unload 2009-03-05 14:30
+[delivery] transport=IN_PORT, routing=ROUTED, lastKnownLocation=USNYC, currentVoyage=, misdirected=false, unloadedAtDestination=true, eta=2009-03-05 14:30, next=CLAIM at USNYC
+[jms] DeliveredCargoQueue: <CARGO-B>
+[tracking page <CARGO-B>] forwards to /WEB-INF/jsp/pub/track.jsp
+  status: In port New York
+  Hongkong -> New York, eta 2009-03-05 02:30, misdirected=false
+  next expected: Next expected activity is to claim cargo in New York
+  event: 2009-03-01 08:00 | RECEIVE | Hongkong | voyage  | expected=true | Received in Hongkong, at 3/1/09 8:00 AM.
+  event: 2009-03-02 09:00 | LOAD | Hongkong | voyage 0100S | expected=true | Loaded onto voyage 0100S in Hongkong, at 3/2/09 9:00 AM.
+  event: 2009-03-05 02:30 | UNLOAD | New York | voyage 0100S | expected=true | Unloaded off voyage 0100S in New York, at 3/5/09 2:30 PM.
+
+## Tracking page for an unknown tracking id
+[tracking page NOSUCH1] forwards to /WEB-INF/jsp/pub/track.jsp
+  error: cargo.unknown_id (Unknown tracking id)
+
+## SOAP report with invalid data is rejected synchronously
+rejected: [Completion time is required, JUMP is not a valid handling event type. Valid types are: [LOAD, UNLOAD, RECEIVE, CLAIM, CUSTOMS], XX is not a valid UN/LOCODE (does not match pattern)]

@@ -1,0 +1,7 @@
+target/
+build/
+.gradle/
+.idea/
+*.iml
+.DS_Store
+legacy-explorer-mcp/bench/results/*/*.jsonl
